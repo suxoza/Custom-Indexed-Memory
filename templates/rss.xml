@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Custom DB</title>
+  {% for store in data %}
+  <item>
+    <guid>{{ store['guid'] }}</title>
+    <title>{{ store['title'] }}</title>
+    <source>{{ store['source'] }}</title>
+    <link>{{ store['link'] }}</title>
+    <pubDate>{{ store['pubDat'] }}</title>
+  </item>
+  {% endfor %}
+</channel>
+</rss>
