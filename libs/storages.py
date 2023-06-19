@@ -27,8 +27,8 @@ class Storages:
         return len(self._storage['data'])
 
     def get_item(self, item_id: int):
-        data = list(filter(lambda x: item_id == x['id'], self._storage['indexes']))
-        return data[0] if data else {}
+        index = next((index for (index, d) in enumerate(self._storage['indexes']) if d["id"] == item_id), -1)
+        return self._storage['data'][index].to_json() if index > -1 else {}
         
     def search(self, searchData, is_rss = False):
         size = 50
