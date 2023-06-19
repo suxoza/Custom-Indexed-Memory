@@ -1,15 +1,15 @@
-# Custom Memory Database(Flask)
+# Custom Memory-based searchable database(Flask)
 
 # Installation
 
 ### Using Docker
 
 ```bash
-docker build -t custom-memory .
-docker run -p 5000:5000 custom-memory
+docker build -t memory-based-db .
+docker run -p 5000:5000 memory-based-db
 ```
 
-### using VirtualEnv
+### Using VirtualEnv
 
 ```bash
 python3 -m venv .venv
