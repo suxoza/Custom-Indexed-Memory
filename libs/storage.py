@@ -1,76 +1,68 @@
-import hashlib
-import inspect
-import datetime
-from random import randrange
-from libs.data_types import StorageData
+from collections import deque
+from fuzzysearch import find_near_matches
+
+from libs.store import Store
+from libs.data_types import StorageData, Index
+
+STORAGE_MAX_LENGTH = 150
 
 class Storage:
-
-    _id: int = 0
-    _url: str
-    url_hostname: str = ''
-    url_scheme: str = ''
-    submitted_by: str = ''
-
-    def __init__(self, data: StorageData) -> None:
-        self.title = data.get('title', '')
-        self.author = data.get('author', '')
-        self.text = data.get('text', '')
-        self.id = data.get('id', '')
-
-        self.submitted_by = data.get('user_agent', '')
-        self.created_at = datetime.datetime.now().isoformat()
-        self._url = data.get('url')
-        self._set_host_details()
-
-    def _set_host_details(self):
-        parse = self._url.split('://')
-        [self.url_hostname, self.url_scheme] = [parse[0], parse[1].split('/')[0]]
-
-    @property
-    def id(self):
-        return self._id
-
-    @id.setter
-    def id(self, value):
-        self._id = f'{value}-{randrange(240)}'
-
-    @property
-    def title_md5(self):
-       return hashlib.md5(self.title.encode()).hexdigest() if self.title else ''
     
-    @property
-    def text_md5(self):
-       return hashlib.md5(self.text.encode()).hexdigest() if self.text else ''
-
-    @property
-    def title_len_ch(self):
-        return len(self.title)
+    _storage = {
+        'data': deque([], maxlen=STORAGE_MAX_LENGTH),
+        'indexes': deque([], maxlen=STORAGE_MAX_LENGTH)
+    }
     
-    @property
-    def text_len_ch(self):
-        return len(self.text)
+    storage: StorageData
+
+    def add(self, data: StorageData) -> None:
+        self.storage = Store({**data, 'id': self.length + 1})
+        index = Index(id=self.storage.id, title=self.storage.title, author=self.storage.author)
+        self._storage['data'].append(self.storage)
+        self._storage['indexes'].append(index)
+        return self.storage
 
     @property
-    def title_len_words(self):
-        return len(self.title.split())
-    
-    @property
-    def text_len_words(self):
-        return len(self.text.split())
+    def length(self):
+        return len(self._storage['data'])
 
-    # retrieves fields based on the "schema" argument, or all of them.
-    def to_json(self, schema: set = ()): 
-        return {x: getattr(self, x) for x in dir(self) if (not schema or (schema and x in schema)) and not (x.startswith('_') or inspect.ismethod(getattr(self, x)))}
+    def get_item(self, item_id: int):
+        index = next((index for (index, d) in enumerate(self._storage['indexes']) if d["id"] == item_id), -1)
+        return self._storage['data'][index].to_json() if index > -1 else {}
+        
+    def search(self, searchData, is_rss = False):
+        size = 50
+        try:
+            size = int(searchData.get('size', 50))
+        except TypeError:
+            pass
 
-    def to_item(self): 
-        return self.to_json(('id', 'title', 'author', 'text', 'created_at'))
+        rss_or_item = 'to_item' if not is_rss else 'to_rss'
 
-    def to_rss(self):
-        return dict(
-            guid=f'/item/{self.id}',
-            title=self.title,
-            source=self.author,
-            link=self._url,
-            pubDat=self.created_at
-        )
+        title = searchData.get('title')
+        author = searchData.get('author')
+        
+        # If no title or author are provided, all records will be retrieved. depends on "size" arg, in reversed order
+        if not any([title, author]):
+            return [getattr(self._storage['data'][i - 1], rss_or_item)() for i in range(min(self.length, size), 0, -1)]
+            
+        responce = []
+
+        # search in indexes-storage, 
+        # reversed loop, to give the new items priority
+        for index in range(min(self.length, size), 0, -1):
+            i = index-1
+            index_data = self._storage['indexes'][i]
+
+            # author exact search
+            if author and author != index_data['author']:
+                continue
+
+            # title fuzzy search
+            if title and not find_near_matches(title, index_data['title'], max_l_dist=1):
+                continue
+
+            # data.to_rss() if is_rss else data.to_item()
+            responce.append(getattr(self._storage['data'][i], rss_or_item)())
+
+        return responce

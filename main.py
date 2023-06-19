@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
-from libs.storages import Storages
+from libs.storage import Storage
 
-storage = Storages()
+storage = Storage()
 
 app = Flask(__name__)
 
