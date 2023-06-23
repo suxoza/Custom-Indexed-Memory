@@ -4,11 +4,11 @@
   <title>Custom DB</title>
   {% for store in data %}
   <item>
-    <guid>{{ store['guid'] }}</title>
+    <guid>{{ store['guid'] }}</guid>
     <title>{{ store['title'] }}</title>
-    <source>{{ store['source'] }}</title>
-    <link>{{ store['link'] }}</title>
-    <pubDate>{{ store['pubDat'] }}</title>
+    <source>{{ store['source'] }}</source>
+    <link>{{ store['link'] }}</link>
+    <pubDate>{{ store['pubDat'] }}</pubDate>
   </item>
   {% endfor %}
 </channel>
